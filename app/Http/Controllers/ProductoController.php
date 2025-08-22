@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreProductoRequest;
 use App\Models\Categoria;
 use App\Models\Marca;
 use App\Models\Presentacione;
+use App\Models\Producto;
+use Illuminate\Support\Facades\DB;
+use Exception;
 use Illuminate\Http\Request;
 
 class ProductoController extends Controller
@@ -22,29 +26,70 @@ class ProductoController extends Controller
      */
     public function create()
     {
-        $marcas = Marca::join('caracteristicas as c','marcas.caracteristica_id','=','c.id')
-        ->where ('c.estado',1)
-        ->get();
+        $marcas = Marca::join('caracteristicas as c', 'marcas.caracteristica_id', '=', 'c.id')
+            ->select('marcas.id as id', 'c.nombre as nombre')
+            ->where('c.estado', 1)
+            ->get();
 
-        $presentaciones = Presentacione::join('caracteristicas as c','presentaciones.caracteristica_id','=','c.id')
-        ->where ('c.estado',1)
-        ->get();
+        $presentaciones = Presentacione::join('caracteristicas as c', 'presentaciones.caracteristica_id', '=', 'c.id')
+            ->select('presentaciones.id as id', 'c.nombre as nombre')
+            ->where('c.estado', 1)
+            ->get();
 
-        $categorias = Categoria::join('caracteristicas as c','categorias.caracteristica_id','=','c.id')
-        ->where ('c.estado',1)
-        ->get();
+        $categorias = Categoria::join('caracteristicas as c', 'categorias.caracteristica_id', '=', 'c.id')
+            ->select('categorias.id as id', 'c.nombre as nombre')
+            ->where('c.estado', 1)
+            ->get();
 
-        
 
-        return view('producto.create', compact('marcas','presentaciones','categorias'));
+
+        return view('producto.create', compact('marcas', 'presentaciones', 'categorias'));
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreProductoRequest $request)
     {
-        //
+        //dd($request);
+        try {
+            DB::beginTransaction();
+            //tabla productos
+            $producto = new Producto();
+            if ($request->hasFile('imagen_path')) {
+                $name = $producto->hanbleUploadImages($request->file('imagen_path'));
+
+            } else {
+                $name = null;
+
+            }
+
+            $producto->fill([
+                'codigo_pro' => $request->codigo_pro,
+                'nombre_pro' => $request->nombre_pro,
+                'descripcion' => $request->descripcion,
+                'imagen_path' => $name,
+                'marca_id' => $request->marca_id,
+                'presentacione_id' =>$request->presentacione_id
+
+            ]);
+            $producto->save();
+
+            //tabla categoria_producto
+            $categorias = $request->get('categorias');
+            $producto->categorias()->attach($categorias);
+
+            
+
+            DB::commit();
+
+        } catch (Exception $e) {
+            DB::rollBack();
+
+        }
+
+
+        return redirect()->route('productos.index')->with('success','Producto Registrado');
     }
 
     /**

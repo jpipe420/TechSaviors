@@ -8,6 +8,28 @@
 @endpush
 
 @section('content')
+
+
+@if (session('success'))
+        <script>
+            const Toast = Swal.mixin({
+                toast: true,
+                position: "top-end",
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.onmouseenter = Swal.stopTimer;
+                    toast.onmouseleave = Swal.resumeTimer;
+                }
+            });
+            Toast.fire({
+                icon: "success",
+                title: "Producto agregado"
+            });
+        </script>
+
+    @endif
     <div class="container-fluid px-4">
 
         <!-- Page Heading -->
